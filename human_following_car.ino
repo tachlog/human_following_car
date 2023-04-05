@@ -1,148 +1,96 @@
-#include <NewPing.h>
-#include<AFMotor.h>
+// Define pin connections for the different sensors and motor driver
+const int leftIRPin = 3;
+const int rightIRPin = 2;
+const int trigPin = 11;
+const int echoPin = 12;
+const int enAPin = 5;
+const int in1Pin = 7;
+const int in2Pin = 8;
+const int enBPin = 6;
+const int in3Pin = 9;
+const int in4Pin = 10;
 
-#define ULTRASONIC_SENSOR_TRIG 11 // trig pin of HC-SR04
-#define ULTRASONIC_SENSOR_ECHO 12 // trig pin of HC-SR04
+// Initialize Variables
+int leftIRValue = 0;
+int rightIRValue = 0;
+int distance = 0;
 
-#define MAX_FORWARD_MOTOR_SPEED 120
-#define MAX_MOTOR_TURN_SPEED_ADJUSTMENT 50
+void setup() {
+  // Initialize serial communication
+  Serial.begin(9600);
 
-#define MIN_DISTANCE 1
-#define MAX_DISTANCE 25
-
-#define IR_SENSOR_RIGHT 2   //ir sensor Right
-#define IR_SENSOR_LEFT 3   //ir sensor Left
-
-//Right motor
-int enableRightMotor=5;  //Enables PWM signal for Right motor
-int rightMotorPin1=7;   // forward motion of Right motor
-int rightMotorPin2=8;  // reverse motion of Right motor
-
-//Left motor
-int enableLeftMotor=6;   //Enables PWM signal for Left motor
-int leftMotorPin1=9;    // forward motion of Left motor
-int leftMotorPin2=10;  // reverse motion of Left motor
-
-long duration, distance; // variable for the duration of sound wave travel and distance measurement
-NewPing mySensor(ULTRASONIC_SENSOR_TRIG, ULTRASONIC_SENSOR_ECHO);
-
-void setup()
-{
-  // put your setup code here, to run once:
-  pinMode(enableRightMotor, OUTPUT); // declare as output for L293D Pins
-  pinMode(rightMotorPin1, OUTPUT);
-  pinMode(rightMotorPin2, OUTPUT);
-  
-  pinMode(enableLeftMotor, OUTPUT);
-  pinMode(leftMotorPin1, OUTPUT);
-  pinMode(leftMotorPin2, OUTPUT);
-
-  pinMode(ULTRASONIC_SENSOR_TRIG, OUTPUT);  // set trig pin as output to Transmit Waves
-  pinMode(ULTRASONIC_SENSOR_ECHO, INPUT);   // set echo pin as input to capture reflected 
-
-  pinMode(IR_SENSOR_RIGHT, INPUT);
-  pinMode(IR_SENSOR_LEFT, INPUT);
-  rotateMotor(0,0);   
+  // Set pin modes for all the sensors and motor driver
+  pinMode(leftIRPin, INPUT);
+  pinMode(rightIRPin, INPUT);
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  pinMode(enAPin, OUTPUT);
+  pinMode(in1Pin, OUTPUT);
+  pinMode(in2Pin, OUTPUT);
+  pinMode(enBPin, OUTPUT);
+  pinMode(in3Pin, OUTPUT);
+  pinMode(in4Pin, OUTPUT);
 }
 
+void loop() {
+  // Read left and right IR sensor values
+  leftIRValue = digitalRead(leftIRPin);
+  rightIRValue = digitalRead(rightIRPin);
 
-void loop()
-{
-
-    digitalWrite(ULTRASONIC_SENSOR_TRIG, LOW); // Clears the trigPin condition
-    delayMicroseconds(2);
-    digitalWrite(ULTRASONIC_SENSOR_TRIG, HIGH);// send waves for 10 us (the trigPin HIGH (ACTIVE))
-    delayMicroseconds(10);
-    digitalWrite(ULTRASONIC_SENSOR_TRIG, LOW);
-    // Reads the echoPin, returns the sound wave travel time in microseconds
-    duration = pulseIn(ULTRASONIC_SENSOR_ECHO, HIGH); // receive reflected waves
-    // Calculating the distance
-    distance = duration / 58.2;        // convert to distance
-    delay(10);
-   
-    if (distance < 24)
-    {   
-        analogWrite(enableRightMotor, 250); 
-        analogWrite(enableLeftMotor, 245);
-        digitalWrite(rightMotorPin1, HIGH); // move forward
-        digitalWrite(rightMotorPin2, LOW);
-        digitalWrite(leftMotorPin1, HIGH);
-        digitalWrite(leftMotorPin2, LOW);
-    }
-
-    if (distance > 25)
-    {   
-        analogWrite(enableRightMotor, 250); 
-        analogWrite(enableLeftMotor, 245);
-        digitalWrite(rightMotorPin1, LOW); // Stop
-        digitalWrite(rightMotorPin2, LOW);
-        digitalWrite(leftMotorPin1, LOW);
-        digitalWrite(leftMotorPin2, LOW);
-        
-    }
-
-  int distance = mySensor.ping_cm();
-  int rightIRSensorValue = digitalRead(IR_SENSOR_RIGHT);
-  int leftIRSensorValue = digitalRead(IR_SENSOR_LEFT);
-
-  //NOTE: If IR sensor detects the hand then its value will be LOW else the value will be HIGH
-  
-  //If right sensor detects hand, then turn right. We increase left motor speed and decrease the right motor speed to turn towards right
-  if (rightIRSensorValue == HIGH && leftIRSensorValue == LOW )
-  {
-      rotateMotor(MAX_FORWARD_MOTOR_SPEED - MAX_MOTOR_TURN_SPEED_ADJUSTMENT, MAX_FORWARD_MOTOR_SPEED + MAX_MOTOR_TURN_SPEED_ADJUSTMENT ); 
-  }
-  //If left sensor detects hand, then turn left. We increase right motor speed and decrease the left motor speed to turn towards left
-  else if (rightIRSensorValue == LOW && leftIRSensorValue == HIGH )
-  {
-      rotateMotor(MAX_FORWARD_MOTOR_SPEED + MAX_MOTOR_TURN_SPEED_ADJUSTMENT, MAX_FORWARD_MOTOR_SPEED - MAX_MOTOR_TURN_SPEED_ADJUSTMENT); 
-  }
-  //If distance is between min and max then go straight
-  else if (distance >= MIN_DISTANCE && distance <= MAX_DISTANCE)
-  {
-    rotateMotor(MAX_FORWARD_MOTOR_SPEED, MAX_FORWARD_MOTOR_SPEED);
-  }
-  //stop the motors
-  else 
-  {
-    rotateMotor(0, 0);
-  }
-}
-
-
-void rotateMotor(int rightMotorSpeed, int leftMotorSpeed)
-{
-  if (rightMotorSpeed < 0)               //turn right
-  {
-    digitalWrite(rightMotorPin1,LOW);
-    digitalWrite(rightMotorPin2,HIGH);    
-  }
-  else if (rightMotorSpeed > 0)
-  {
-    digitalWrite(rightMotorPin1,HIGH);
-    digitalWrite(rightMotorPin2,LOW);      
-  }
-  else
-  {
-    digitalWrite(rightMotorPin1,LOW);
-    digitalWrite(rightMotorPin2,LOW);      
+  // Determine direction to turn based on IR sensor values
+  if (leftIRValue == HIGH && rightIRValue == LOW) {
+    // Turn left
+    analogWrite(enAPin, 150); 
+    analogWrite(enBPin, 0);
+    digitalWrite(in1Pin, LOW);
+    digitalWrite(in2Pin, HIGH);
+    digitalWrite(in3Pin, HIGH);
+    digitalWrite(in4Pin, HIGH);
+  } else if (leftIRValue == LOW && rightIRValue == HIGH) {
+    // Turn right
+    analogWrite(enAPin, 0); 
+    analogWrite(enBPin, 150);
+    digitalWrite(in1Pin, LOW);
+    digitalWrite(in2Pin, LOW);
+    digitalWrite(in3Pin, LOW);
+    digitalWrite(in4Pin, HIGH);
+  } else {
+    // Go straight
+    analogWrite(enAPin, 120);
+    analogWrite(enBPin, 120);
+    digitalWrite(in1Pin, LOW);
+    digitalWrite(in2Pin, HIGH);
+    digitalWrite(in3Pin, LOW);
+    digitalWrite(in4Pin, HIGH);
   }
 
-  if (leftMotorSpeed < 0)               //turn left
-  {
-    digitalWrite(leftMotorPin1,LOW);
-    digitalWrite(leftMotorPin2,HIGH);    
+  // Read distance from ultrasonic sensor
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  distance = pulseIn(echoPin, HIGH) / 58;
+
+  // Stop the car if the distance is less than 10 cm
+  if (distance > 10) {
+    analogWrite(enAPin, 0); 
+    analogWrite(enBPin, 0);
+    digitalWrite(in1Pin, LOW);
+    digitalWrite(in2Pin, LOW);
+    digitalWrite(in3Pin, LOW);
+    digitalWrite(in4Pin, LOW);
   }
-  else if (leftMotorSpeed > 0)
-  {
-    digitalWrite(leftMotorPin1,HIGH);
-    digitalWrite(leftMotorPin2,LOW);      
-  }
-  else 
-  {
-    digitalWrite(leftMotorPin1,LOW);
-    digitalWrite(leftMotorPin2,LOW);      
-  }
-  analogWrite(enableRightMotor, abs(rightMotorSpeed));
-  analogWrite(enableLeftMotor, abs(leftMotorSpeed));    
+
+  // Print sensor values to serial monitor
+  Serial.print("Left IR value: ");
+  Serial.print(leftIRValue);
+  Serial.print(", Right IR value: ");
+  Serial.print(rightIRValue);
+  Serial.print(", Distance: ");
+  Serial.print(distance);
+  Serial.println(" cm");
+
+  // Wait for some time before looping again
+  delay(100);
 }
